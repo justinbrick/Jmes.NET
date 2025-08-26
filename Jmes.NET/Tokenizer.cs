@@ -147,6 +147,7 @@ public sealed class Tokenizer
 	/// <typeparam name="TNotMatch">the type returned if the character does not match</typeparam>
 	/// <param name="toMatch">the character to match</param>
 	/// <returns>an instance of either the matching or non-matching token type</returns>
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	private IToken ConsumeMatchedOr<TMatch, TNotMatch>(char toMatch)
 		where TMatch : IToken, new()
 		where TNotMatch : IToken, new()
@@ -179,6 +180,12 @@ public sealed class Tokenizer
 		return builder.ToString();
 	}
 
+	/// <summary>
+	///	Consumes characters until the specified sentinel character is reached.
+	/// </summary>
+	/// <param name="sentinel">the character to terminate consumption</param>
+	/// <returns>a string containing the consumed characters</returns>
+	/// <exception cref="TokenizationException">unexpected end of input</exception>
 	private string ConsumeUntil(char sentinel)
 	{
 		var startIndex = _index;
@@ -208,12 +215,22 @@ public sealed class Tokenizer
 		);
 	}
 
+	/// <summary>
+	/// Consumes an identifier from the input stream.
+	/// </summary>
+	/// <returns>An <see cref="IdentifierToken"/> representing the consumed identifier.</returns>
 	private IdentifierToken ConsumeIdentifier()
 	{
 		var consumed = ConsumeWhile(c => char.IsAsciiLetter(c) || char.IsAsciiDigit(c) || c == '_');
 		return new IdentifierToken(consumed);
 	}
 
+	/// <summary>
+	/// Consumes a quoted identifier from the input stream.
+	/// </summary>
+	/// <returns>A <see cref="QuotedIdentifierToken"/> representing the consumed quoted identifier.</returns>
+	/// <exception cref="TokenizationException">the input is not a valid quoted identifier</exception>
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	private QuotedIdentifierToken ConsumeQuotedIdentifier()
 	{
 		var consumed = ConsumeUntil('"');
@@ -226,6 +243,11 @@ public sealed class Tokenizer
 			: new QuotedIdentifierToken(strValue);
 	}
 
+	/// <summary>
+	/// Consumes the left bracket from the input stream, returning tokens depending on the peeked character.
+	/// </summary>
+	/// <returns>A <see cref="IToken"/> representing the consumed bracket and other related tokens.</returns>
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	private IToken ConsumeBracket()
 	{
 		switch (_enumerator.Peek())
@@ -241,6 +263,12 @@ public sealed class Tokenizer
 		}
 	}
 
+	/// <summary>
+	/// Consumes a number from the input stream.
+	/// </summary>
+	/// <param name="negative">whether the number is negative</param>
+	/// <returns>A <see cref="NumberToken"/> representing the consumed number.</returns>
+	/// <exception cref="TokenizationException">the input is not a valid number</exception>
 	private NumberToken ConsumeNumber(bool negative = false)
 	{
 		if ((negative && !MoveNext()) || !char.IsAsciiDigit(_enumerator.Current))
@@ -257,10 +285,11 @@ public sealed class Tokenizer
 			var value = int.Parse(consumed);
 			return new NumberToken(negative ? -value : value);
 		}
-		catch (FormatException)
+		catch (FormatException ex)
 		{
 			throw new TokenizationException(
-				$"Invalid number format at index {startingIndex}: {consumed}"
+				$"Invalid number format at index {startingIndex}: {consumed}",
+				ex
 			);
 		}
 	}
