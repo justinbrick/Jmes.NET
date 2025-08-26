@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Runtime.CompilerServices;
+using System.Text;
 using TokenIndex = (ulong, Jmes.NET.IToken);
 
 namespace Jmes.NET;
@@ -57,6 +58,18 @@ public sealed class Tokenizer
 				case char c when char.IsAsciiLetter(c) || c == '_':
 					tokens.Add((_index, ConsumeIdentifier()));
 					break;
+				case char c when char.IsAsciiDigit(c):
+					tokens.Add((_index, ConsumeNumber()));
+					break;
+				case char c when char.IsWhiteSpace(c):
+					// Ignore whitespace
+					break;
+				case '-':
+					tokens.Add((_index, ConsumeNumber(true)));
+					break;
+				case '[':
+					tokens.Add((_index, ConsumeBracket()));
+					break;
 				case '.':
 					tokens.Add((_index, new DotToken()));
 					break;
@@ -77,6 +90,9 @@ public sealed class Tokenizer
 					break;
 				case '!':
 					tokens.Add((_index, ConsumeMatchedOr<NeqToken, NotToken>('=')));
+					break;
+				case '|':
+					tokens.Add((_index, ConsumeMatchedOr<OrToken, PipeToken>('|')));
 					break;
 				case '(':
 					tokens.Add((_index, new LParenToken()));
@@ -99,6 +115,19 @@ public sealed class Tokenizer
 				case '}':
 					tokens.Add((_index, new RBraceToken()));
 					break;
+				case '=':
+					MoveNext();
+					switch (_enumerator.Current)
+					{
+						case '=':
+							tokens.Add((_index, new EqToken()));
+							break;
+						default:
+							throw new TokenizationException(
+								$"Unexpected character '=' at index {_index}. Did you mean '=='?"
+							);
+					}
+					break;
 			}
 		}
 
@@ -107,6 +136,13 @@ public sealed class Tokenizer
 		return tokens;
 	}
 
+	/// <summary>
+	/// Consumes the next character if it matches the expected character, returning a token of the specified type.
+	/// </summary>
+	/// <typeparam name="TMatch">the type returned if the character matches</typeparam>
+	/// <typeparam name="TNotMatch">the type returned if the character does not match</typeparam>
+	/// <param name="toMatch">the character to match</param>
+	/// <returns>an instance of either the matching or non-matching token type</returns>
 	private IToken ConsumeMatchedOr<TMatch, TNotMatch>(char toMatch)
 		where TMatch : IToken, new()
 		where TNotMatch : IToken, new()
@@ -119,20 +155,68 @@ public sealed class Tokenizer
 		return new TNotMatch();
 	}
 
-	private IdentifierToken ConsumeIdentifier()
+	/// <summary>
+	///	Consumes characters from the input while the specified predicate is true, starting from the current character in the input stream.
+	/// </summary>
+	/// <param name="predicate">a function to evaluate each character</param>
+	/// <returns>a string containing the consumed characters</returns>
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private string ConsumeWhile(Func<char, bool> predicate)
 	{
 		var builder = new StringBuilder();
 		builder.Append(_enumerator.Current);
 
-		while (
-			_enumerator.Peek() is { } next
-			&& (char.IsAsciiLetter(next) || char.IsAsciiDigit(next) || next == '_')
-		)
+		while (_enumerator.Peek() is { } next && predicate(next))
 		{
 			MoveNext();
 			builder.Append(_enumerator.Current);
 		}
 
-		return new IdentifierToken { Value = builder.ToString() };
+		return builder.ToString();
+	}
+
+	private IdentifierToken ConsumeIdentifier()
+	{
+		var consumed = ConsumeWhile(c => char.IsAsciiLetter(c) || char.IsAsciiDigit(c) || c == '_');
+		return new IdentifierToken(consumed);
+	}
+
+	private IToken ConsumeBracket()
+	{
+		switch (_enumerator.Peek())
+		{
+			case '?':
+				MoveNext();
+				return new FilterToken();
+			case ']':
+				MoveNext();
+				return new FlattenToken();
+			default:
+				return new LBracketToken();
+		}
+	}
+
+	private NumberToken ConsumeNumber(bool negative = false)
+	{
+		if ((negative && !MoveNext()) || !char.IsAsciiDigit(_enumerator.Current))
+		{
+			throw new TokenizationException(
+				$"Invalid number format at index {_index}: '-' must be followed by a digit"
+			);
+		}
+
+		var startingIndex = _index;
+		var consumed = ConsumeWhile(char.IsAsciiDigit);
+		try
+		{
+			var value = int.Parse(consumed);
+			return new NumberToken(negative ? -value : value);
+		}
+		catch (FormatException)
+		{
+			throw new TokenizationException(
+				$"Invalid number format at index {startingIndex}: {consumed}"
+			);
+		}
 	}
 }
