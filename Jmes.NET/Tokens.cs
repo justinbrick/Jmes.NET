@@ -5,19 +5,19 @@ public interface IToken
 	public int LeftBindingPower => 0;
 }
 
-public sealed class QuotedIdentifierToken : IToken
+public sealed class QuotedIdentifierToken(string value) : IToken
 {
-	public required string Value { get; init; }
+	public string Value = value;
 }
 
-public sealed class IdentifierToken : IToken
+public sealed class IdentifierToken(string value) : IToken
 {
-	public required string Value { get; init; }
+	public string Value = value;
 }
 
-public sealed class NumberToken : IToken
+public sealed class NumberToken(int value) : IToken
 {
-	public required int Value { get; init; }
+	public int Value = value;
 }
 
 public sealed class LiteralToken : IToken
@@ -62,10 +62,6 @@ public sealed class GteToken : IToken { }
 public sealed class LteToken : IToken { }
 
 public sealed class StarToken : IToken { }
-
-public sealed class PlusToken : IToken { }
-
-public sealed class MinusToken : IToken { }
 
 public sealed class FilterToken : IToken { }
 
