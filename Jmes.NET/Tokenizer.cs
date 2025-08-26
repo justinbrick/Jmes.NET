@@ -1,5 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.Json.Nodes;
 using TokenIndex = (ulong, Jmes.NET.IToken);
 
 namespace Jmes.NET;
@@ -63,6 +64,9 @@ public sealed class Tokenizer
 					break;
 				case char c when char.IsWhiteSpace(c):
 					// Ignore whitespace
+					break;
+				case '"':
+					tokens.Add((_index, ConsumeQuotedIdentifier()));
 					break;
 				case '-':
 					tokens.Add((_index, ConsumeNumber(true)));
@@ -175,10 +179,51 @@ public sealed class Tokenizer
 		return builder.ToString();
 	}
 
+	private string ConsumeUntil(char sentinel)
+	{
+		var startIndex = _index;
+		var builder = new StringBuilder();
+
+		while (MoveNext())
+		{
+			if (_enumerator.Current == sentinel)
+			{
+				return builder.ToString();
+			}
+			if (_enumerator.Current == '\\')
+			{
+				builder.Append(_enumerator.Current);
+				if (!MoveNext())
+				{
+					throw new TokenizationException(
+						$"Unterminated escape sequence starting at index {_index}"
+					);
+				}
+				builder.Append(_enumerator.Current);
+			}
+		}
+
+		throw new TokenizationException(
+			$"Unterminated '{sentinel}' starting at index {startIndex}"
+		);
+	}
+
 	private IdentifierToken ConsumeIdentifier()
 	{
 		var consumed = ConsumeWhile(c => char.IsAsciiLetter(c) || char.IsAsciiDigit(c) || c == '_');
 		return new IdentifierToken(consumed);
+	}
+
+	private QuotedIdentifierToken ConsumeQuotedIdentifier()
+	{
+		var consumed = ConsumeUntil('"');
+		return
+			JsonNode.Parse($"\"{consumed}\"") is not JsonValue value
+			|| value.GetValue<string>() is not string strValue
+			? throw new TokenizationException(
+				$"Invalid quoted identifier format at index {_index}: \"{consumed}\""
+			)
+			: new QuotedIdentifierToken(strValue);
 	}
 
 	private IToken ConsumeBracket()
