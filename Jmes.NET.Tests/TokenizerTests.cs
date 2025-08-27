@@ -162,7 +162,7 @@ public class TokenizerTests
 	{
 		// jmes_path
 		Assert.Equal(
-			[(0, JmesToken.Identifier("jmes_path")), (8, JmesToken.Make(JmesTokenType.Eof))],
+			[(0, JmesToken.Identifier("jmes_path")), (9, JmesToken.Make(JmesTokenType.Eof))],
 			Tokenizer.Tokenize("jmes_path")
 		);
 
