@@ -13,7 +13,7 @@
 		<PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
 	</ItemGroup>
 	<ItemGroup>
-		<ProjectReference Include="..\JMES.Net\JMES.Net.csproj" />
+		<ProjectReference Include="..\Jmes.NET\Jmes.NET.csproj" />
 	</ItemGroup>
 	<ItemGroup>
 		<Using Include="Xunit" />
