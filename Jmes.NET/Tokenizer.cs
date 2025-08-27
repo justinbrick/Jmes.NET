@@ -147,6 +147,10 @@ public sealed class Tokenizer<T>(T enumerator)
 							);
 					}
 					break;
+				default:
+					throw new TokenizationException(
+						$"Unexpected character '{_enumerator.Current}' at index {_index}"
+					);
 			}
 		}
 
