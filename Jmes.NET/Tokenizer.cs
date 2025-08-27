@@ -1,5 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using TokenIndex = (long, Jmes.NET.JmesToken);
 
@@ -64,6 +65,9 @@ public sealed class Tokenizer<T>(T enumerator)
 				case '"':
 					tokens.Add((_index, ConsumeQuotedIdentifier()));
 					break;
+				case '`':
+					tokens.Add((_index, ConsumeLiteral()));
+					break;
 				case '-':
 					tokens.Add((_index, ConsumeNumber(true)));
 					break;
@@ -126,11 +130,16 @@ public sealed class Tokenizer<T>(T enumerator)
 					tokens.Add((_index, JmesToken.Make(JmesTokenType.RBrace)));
 					break;
 				case '=':
-					MoveNext();
+					if (!MoveNext())
+					{
+						throw new TokenizationException(
+							$"Unexpected end of input for '=' at index {_index - 1}"
+						);
+					}
 					switch (_enumerator.Current)
 					{
 						case '=':
-							tokens.Add((_index, JmesToken.Make(JmesTokenType.Eq)));
+							tokens.Add((_index - 1, JmesToken.Make(JmesTokenType.Eq)));
 							break;
 						default:
 							throw new TokenizationException(
@@ -247,6 +256,29 @@ public sealed class Tokenizer<T>(T enumerator)
 				$"Invalid quoted identifier format at index {_index}: \"{consumed}\""
 			)
 			: JmesToken.QuotedIdentifier(strValue);
+	}
+
+	/// <summary>
+	///	Consumes a literal JSON object inside of ticks (`)
+	/// </summary>
+	/// <returns>A <see cref="JmesToken"/> representing the consumed literal.</returns>
+	/// <exception cref="TokenizationException"></exception>
+	private JmesToken ConsumeLiteral()
+	{
+		var start = _index;
+		var consumed = ConsumeUntil('`').Replace("\\`", "`");
+		try
+		{
+			var json = JsonNode.Parse(consumed);
+			return JmesToken.LiteralToken(json);
+		}
+		catch (JsonException e)
+		{
+			throw new TokenizationException(
+				$"Failed to parse JSON inside of the literal expression at {start}",
+				e
+			);
+		}
 	}
 
 	/// <summary>
