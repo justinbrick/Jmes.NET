@@ -216,9 +216,11 @@ public sealed class Tokenizer<T>(T enumerator)
 			{
 				return builder.ToString();
 			}
+
+			builder.Append(_enumerator.Current);
+
 			if (_enumerator.Current == '\\')
 			{
-				builder.Append(_enumerator.Current);
 				if (!MoveNext())
 				{
 					throw new TokenizationException(
