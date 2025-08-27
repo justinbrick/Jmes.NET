@@ -40,24 +40,20 @@ public enum JmesTokenType
 /// Single value type representing any token. Uses a record struct so equality is value-based.
 /// Payloads are stored in the optional fields depending on token type.
 /// </summary>
-public readonly record struct JmesToken(
-	JmesTokenType Type,
-	string? Text = null,
-	int? Number = null,
-	object? Literal = null
-)
+public readonly record struct JmesToken(JmesTokenType Type, object? Value = null)
 {
 	public int LeftBindingPower => 0;
+	public readonly object? Value = Value;
+	public readonly JmesTokenType TokenType = Type;
 
 	public static JmesToken Make(JmesTokenType type) => new(type);
 
 	public static JmesToken QuotedIdentifier(string value) =>
-		new(JmesTokenType.QuotedIdentifier, Text: value);
+		new(JmesTokenType.QuotedIdentifier, value);
 
-	public static JmesToken Identifier(string value) => new(JmesTokenType.Identifier, Text: value);
+	public static JmesToken Identifier(string value) => new(JmesTokenType.Identifier, value);
 
-	public static JmesToken NumberToken(int value) => new(JmesTokenType.Number, Number: value);
+	public static JmesToken NumberToken(int value) => new(JmesTokenType.Number, value);
 
-	public static JmesToken LiteralToken(object value) =>
-		new(JmesTokenType.Literal, Literal: value);
+	public static JmesToken LiteralToken(object? value) => new(JmesTokenType.Literal, value);
 }
