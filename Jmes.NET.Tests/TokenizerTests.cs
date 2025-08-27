@@ -10,8 +10,8 @@ public class TokenizerTests
 	{
 		// . * @ ] { } ( ) ,
 		Assert.Equal(
-			Tokenizer.Tokenize("."),
-			[(0, JmesToken.Make(JmesTokenType.Dot)), (1, JmesToken.Make(JmesTokenType.Eof))]
+			[(0, JmesToken.Make(JmesTokenType.Dot)), (1, JmesToken.Make(JmesTokenType.Eof))],
+			Tokenizer.Tokenize(".")
 		);
 
 		Assert.Equal(
@@ -158,6 +158,62 @@ public class TokenizerTests
 	}
 
 	[Fact]
+	public void HandlesIdentifiers()
+	{
+		// jmes_path
+		Assert.Equal(
+			[(0, JmesToken.Identifier("jmes_path")), (8, JmesToken.Make(JmesTokenType.Eof))],
+			Tokenizer.Tokenize("jmes_path")
+		);
+
+		// jmes
+		Assert.Equal(
+			[(0, JmesToken.Identifier("jmes")), (4, JmesToken.Make(JmesTokenType.Eof))],
+			Tokenizer.Tokenize("jmes")
+		);
+
+		// _jmes
+		Assert.Equal(
+			[(0, JmesToken.Identifier("_jmes")), (5, JmesToken.Make(JmesTokenType.Eof))],
+			Tokenizer.Tokenize("_jmes")
+		);
+	}
+
+	[Fact]
+	public void HandlesQuotedIdentifiers()
+	{
+		// "jmes"
+		Assert.Equal(
+			[(0, JmesToken.QuotedIdentifier("jmes")), (6, JmesToken.Make(JmesTokenType.Eof))],
+			Tokenizer.Tokenize("\"jmes\"")
+		);
+
+		// ""
+		Assert.Equal(
+			[(0, JmesToken.QuotedIdentifier("")), (2, JmesToken.Make(JmesTokenType.Eof))],
+			Tokenizer.Tokenize("\"\"")
+		);
+
+		// "a_b"
+		Assert.Equal(
+			[(0, JmesToken.QuotedIdentifier("a_b")), (5, JmesToken.Make(JmesTokenType.Eof))],
+			Tokenizer.Tokenize("\"a_b\"")
+		);
+
+		// "a\nb"
+		Assert.Equal(
+			[(0, JmesToken.QuotedIdentifier("a\nb")), (6, JmesToken.Make(JmesTokenType.Eof))],
+			Tokenizer.Tokenize("\"a\\nb\"")
+		);
+
+		// "a\\nb"
+		Assert.Equal(
+			[(0, JmesToken.QuotedIdentifier("a\\nb")), (7, JmesToken.Make(JmesTokenType.Eof))],
+			Tokenizer.Tokenize("\"a\\\\nb\"")
+		);
+	}
+
+	[Fact]
 	public void InvalidEqualFails()
 	{
 		Assert.Throws<TokenizationException>(() => Tokenizer.Tokenize("="));
@@ -181,5 +237,13 @@ public class TokenizerTests
 	{
 		Assert.Throws<TokenizationException>(() => Tokenizer.Tokenize("#"));
 		Assert.Throws<TokenizationException>(() => Tokenizer.Tokenize("~"));
+	}
+
+	[Fact]
+	public void UnterminatedCharacterFails()
+	{
+		// " and `
+		Assert.Throws<TokenizationException>(() => Tokenizer.Tokenize("\"bar"));
+		Assert.Throws<TokenizationException>(() => Tokenizer.Tokenize("`{}"));
 	}
 }
