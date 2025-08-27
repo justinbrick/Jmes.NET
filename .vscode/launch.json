@@ -1,0 +1,26 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Run Unit Tests (dotnet test)",
+			"type": "coreclr",
+			"request": "launch",
+			"preLaunchTask": "build",
+			// Launch the `dotnet` CLI to run the test project so tests actually execute.
+			"program": "dotnet",
+			"args": [
+				"test",
+				"${workspaceFolder}/Jmes.NET.Tests/Jmes.NET.Tests.csproj",
+				"--no-build"
+			],
+			"cwd": "${workspaceFolder}",
+			"console": "integratedTerminal",
+			"stopAtEntry": false
+		},
+		{
+			"name": ".NET Core Attach",
+			"type": "coreclr",
+			"request": "attach"
+		}
+	]
+}
