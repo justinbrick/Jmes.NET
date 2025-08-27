@@ -1,7 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json.Nodes;
-using TokenIndex = (ulong, Jmes.NET.IToken);
+using TokenIndex = (long, Jmes.NET.JmesToken);
 
 namespace Jmes.NET;
 
@@ -36,16 +36,12 @@ public sealed class Tokenizer<T>(T enumerator)
 	where T : IEnumerator<char>
 {
 	private readonly PeekableEnumerator<T, char> _enumerator = new(enumerator);
-	private ulong _index = 0;
+	private long _index = -1;
 
 	private bool MoveNext()
 	{
-		var moved = _enumerator.MoveNext();
-		if (moved)
-		{
-			_index++;
-		}
-		return moved;
+		_index++;
+		return _enumerator.MoveNext();
 	}
 
 	public List<TokenIndex> Tokenize()
@@ -75,56 +71,66 @@ public sealed class Tokenizer<T>(T enumerator)
 					tokens.Add((_index, ConsumeBracket()));
 					break;
 				case '.':
-					tokens.Add((_index, new DotToken()));
+					tokens.Add((_index, JmesToken.Make(JmesTokenType.Dot)));
 					break;
 				case '*':
-					tokens.Add((_index, new StarToken()));
+					tokens.Add((_index, JmesToken.Make(JmesTokenType.Star)));
 					break;
 				case '@':
-					tokens.Add((_index, new AtToken()));
+					tokens.Add((_index, JmesToken.Make(JmesTokenType.At)));
 					break;
 				case '&':
-					tokens.Add((_index, ConsumeMatchedOr<AndToken, AmpersandToken>('&')));
+					tokens.Add(
+						(_index, ConsumeMatchedOr(JmesTokenType.And, JmesTokenType.Ampersand, '&'))
+					);
 					break;
 				case '>':
-					tokens.Add((_index, ConsumeMatchedOr<GteToken, GtToken>('=')));
+					tokens.Add(
+						(_index, ConsumeMatchedOr(JmesTokenType.Gte, JmesTokenType.Gt, '='))
+					);
 					break;
 				case '<':
-					tokens.Add((_index, ConsumeMatchedOr<LteToken, LtToken>('=')));
+					tokens.Add(
+						(_index, ConsumeMatchedOr(JmesTokenType.Lte, JmesTokenType.Lt, '='))
+					);
 					break;
 				case '!':
-					tokens.Add((_index, ConsumeMatchedOr<NeqToken, NotToken>('=')));
+					tokens.Add(
+						(_index, ConsumeMatchedOr(JmesTokenType.Neq, JmesTokenType.Not, '='))
+					);
 					break;
 				case '|':
-					tokens.Add((_index, ConsumeMatchedOr<OrToken, PipeToken>('|')));
+					tokens.Add(
+						(_index, ConsumeMatchedOr(JmesTokenType.Or, JmesTokenType.Pipe, '|'))
+					);
 					break;
 				case '(':
-					tokens.Add((_index, new LParenToken()));
+					tokens.Add((_index, JmesToken.Make(JmesTokenType.LParen)));
 					break;
 				case ')':
-					tokens.Add((_index, new RParenToken()));
+					tokens.Add((_index, JmesToken.Make(JmesTokenType.RParen)));
 					break;
 				case ',':
-					tokens.Add((_index, new CommaToken()));
+					tokens.Add((_index, JmesToken.Make(JmesTokenType.Comma)));
 					break;
 				case ':':
-					tokens.Add((_index, new ColonToken()));
+					tokens.Add((_index, JmesToken.Make(JmesTokenType.Colon)));
 					break;
 				case ']':
-					tokens.Add((_index, new RBracketToken()));
+					tokens.Add((_index, JmesToken.Make(JmesTokenType.RBracket)));
 					break;
 				case '{':
-					tokens.Add((_index, new LBraceToken()));
+					tokens.Add((_index, JmesToken.Make(JmesTokenType.LBrace)));
 					break;
 				case '}':
-					tokens.Add((_index, new RBraceToken()));
+					tokens.Add((_index, JmesToken.Make(JmesTokenType.RBrace)));
 					break;
 				case '=':
 					MoveNext();
 					switch (_enumerator.Current)
 					{
 						case '=':
-							tokens.Add((_index, new EqToken()));
+							tokens.Add((_index, JmesToken.Make(JmesTokenType.Eq)));
 							break;
 						default:
 							throw new TokenizationException(
@@ -135,7 +141,7 @@ public sealed class Tokenizer<T>(T enumerator)
 			}
 		}
 
-		tokens.Add((_index, new EofToken()));
+		tokens.Add((_index, JmesToken.Make(JmesTokenType.Eof)));
 
 		return tokens;
 	}
@@ -143,21 +149,21 @@ public sealed class Tokenizer<T>(T enumerator)
 	/// <summary>
 	/// Consumes the next character if it matches the expected character, returning a token of the specified type.
 	/// </summary>
-	/// <typeparam name="TMatch">the type returned if the character matches</typeparam>
-	/// <typeparam name="TNotMatch">the type returned if the character does not match</typeparam>
 	/// <param name="toMatch">the character to match</param>
-	/// <returns>an instance of either the matching or non-matching token type</returns>
+	/// <returns>a <see cref="JmesToken"/> of either the matching or non-matching token type</returns>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	private IToken ConsumeMatchedOr<TMatch, TNotMatch>(char toMatch)
-		where TMatch : IToken, new()
-		where TNotMatch : IToken, new()
+	private JmesToken ConsumeMatchedOr(
+		JmesTokenType matchType,
+		JmesTokenType notMatchType,
+		char toMatch
+	)
 	{
 		if (_enumerator.Peek() == toMatch)
 		{
 			MoveNext();
-			return new TMatch();
+			return JmesToken.Make(matchType);
 		}
-		return new TNotMatch();
+		return JmesToken.Make(notMatchType);
 	}
 
 	/// <summary>
@@ -219,10 +225,10 @@ public sealed class Tokenizer<T>(T enumerator)
 	/// Consumes an identifier from the input stream.
 	/// </summary>
 	/// <returns>An <see cref="IdentifierToken"/> representing the consumed identifier.</returns>
-	private IdentifierToken ConsumeIdentifier()
+	private JmesToken ConsumeIdentifier()
 	{
 		var consumed = ConsumeWhile(c => char.IsAsciiLetter(c) || char.IsAsciiDigit(c) || c == '_');
-		return new IdentifierToken(consumed);
+		return JmesToken.Identifier(consumed);
 	}
 
 	/// <summary>
@@ -231,7 +237,7 @@ public sealed class Tokenizer<T>(T enumerator)
 	/// <returns>A <see cref="QuotedIdentifierToken"/> representing the consumed quoted identifier.</returns>
 	/// <exception cref="TokenizationException">the input is not a valid quoted identifier</exception>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	private QuotedIdentifierToken ConsumeQuotedIdentifier()
+	private JmesToken ConsumeQuotedIdentifier()
 	{
 		var consumed = ConsumeUntil('"');
 		return
@@ -240,7 +246,7 @@ public sealed class Tokenizer<T>(T enumerator)
 			? throw new TokenizationException(
 				$"Invalid quoted identifier format at index {_index}: \"{consumed}\""
 			)
-			: new QuotedIdentifierToken(strValue);
+			: JmesToken.QuotedIdentifier(strValue);
 	}
 
 	/// <summary>
@@ -248,18 +254,18 @@ public sealed class Tokenizer<T>(T enumerator)
 	/// </summary>
 	/// <returns>A <see cref="IToken"/> representing the consumed bracket and other related tokens.</returns>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	private IToken ConsumeBracket()
+	private JmesToken ConsumeBracket()
 	{
 		switch (_enumerator.Peek())
 		{
 			case '?':
 				MoveNext();
-				return new FilterToken();
+				return JmesToken.Make(JmesTokenType.Filter);
 			case ']':
 				MoveNext();
-				return new FlattenToken();
+				return JmesToken.Make(JmesTokenType.Flatten);
 			default:
-				return new LBracketToken();
+				return JmesToken.Make(JmesTokenType.LBracket);
 		}
 	}
 
@@ -269,7 +275,7 @@ public sealed class Tokenizer<T>(T enumerator)
 	/// <param name="negative">whether the number is negative</param>
 	/// <returns>A <see cref="NumberToken"/> representing the consumed number.</returns>
 	/// <exception cref="TokenizationException">the input is not a valid number</exception>
-	private NumberToken ConsumeNumber(bool negative = false)
+	private JmesToken ConsumeNumber(bool negative = false)
 	{
 		if ((negative && !MoveNext()) || !char.IsAsciiDigit(_enumerator.Current))
 		{
@@ -283,7 +289,7 @@ public sealed class Tokenizer<T>(T enumerator)
 		try
 		{
 			var value = int.Parse(consumed);
-			return new NumberToken(negative ? -value : value);
+			return JmesToken.NumberToken(negative ? -value : value);
 		}
 		catch (FormatException ex)
 		{

@@ -1,76 +1,63 @@
 namespace Jmes.NET;
 
-public interface IToken
+/// <summary>
+/// Token types used by the tokenizer and parser.
+/// </summary>
+public enum JmesTokenType
+{
+	QuotedIdentifier,
+	Identifier,
+	Number,
+	Literal,
+	Pipe,
+	Or,
+	And,
+	Not,
+	LParen,
+	RParen,
+	LBracket,
+	RBracket,
+	LBrace,
+	RBrace,
+	Colon,
+	Dot,
+	Eq,
+	Neq,
+	Gt,
+	Lt,
+	Gte,
+	Lte,
+	Star,
+	Filter,
+	Flatten,
+	Ampersand,
+	Comma,
+	At,
+	Eof,
+}
+
+/// <summary>
+/// Single value type representing any token. Uses a record struct so equality is value-based.
+/// Payloads are stored in the optional fields depending on token type.
+/// </summary>
+public readonly record struct JmesToken(
+	JmesTokenType Type,
+	string? Text = null,
+	int? Number = null,
+	object? Literal = null
+)
 {
 	public int LeftBindingPower => 0;
+
+	public static JmesToken Make(JmesTokenType type) => new(type);
+
+	public static JmesToken QuotedIdentifier(string value) =>
+		new(JmesTokenType.QuotedIdentifier, Text: value);
+
+	public static JmesToken Identifier(string value) => new(JmesTokenType.Identifier, Text: value);
+
+	public static JmesToken NumberToken(int value) => new(JmesTokenType.Number, Number: value);
+
+	public static JmesToken LiteralToken(object value) =>
+		new(JmesTokenType.Literal, Literal: value);
 }
-
-public sealed class QuotedIdentifierToken(string value) : IToken
-{
-	public string Value = value;
-}
-
-public sealed class IdentifierToken(string value) : IToken
-{
-	public string Value = value;
-}
-
-public sealed class NumberToken(int value) : IToken
-{
-	public int Value = value;
-}
-
-public sealed class LiteralToken : IToken
-{
-	public required object Value { get; init; }
-}
-
-public sealed class PipeToken : IToken { }
-
-public sealed class OrToken : IToken { }
-
-public sealed class AndToken : IToken { }
-
-public sealed class NotToken : IToken { }
-
-public sealed class LParenToken : IToken { }
-
-public sealed class RParenToken : IToken { }
-
-public sealed class LBracketToken : IToken { }
-
-public sealed class RBracketToken : IToken { }
-
-public sealed class LBraceToken : IToken { }
-
-public sealed class RBraceToken : IToken { }
-
-public sealed class ColonToken : IToken { }
-
-public sealed class DotToken : IToken { }
-
-public sealed class EqToken : IToken { }
-
-public sealed class NeqToken : IToken { }
-
-public sealed class GtToken : IToken { }
-
-public sealed class LtToken : IToken { }
-
-public sealed class GteToken : IToken { }
-
-public sealed class LteToken : IToken { }
-
-public sealed class StarToken : IToken { }
-
-public sealed class FilterToken : IToken { }
-
-public sealed class FlattenToken : IToken { }
-
-public sealed class AmpersandToken : IToken { }
-
-public sealed class CommaToken : IToken { }
-
-public sealed class AtToken : IToken { }
-
-public sealed class EofToken : IToken { }
