@@ -2,50 +2,52 @@ using System.Collections;
 
 namespace Jmes.NET;
 
-internal sealed class PeekableEnumerator<E, T> : IEnumerator<T>
+/// <summary>
+/// An enumerator implementation that allows peeking at the next element without advancing the enumeration.
+/// </summary>
+/// <typeparam name="E"></typeparam>
+/// <typeparam name="T"></typeparam>
+/// <param name="enumerator"></param>
+internal sealed class PeekableEnumerator<E, T>(E enumerator) : IEnumerator<T>
 	where E : IEnumerator<T>
-	where T : notnull
+	where T : struct
 {
-	private readonly E _enumerator;
-	private T? _next;
+	private T? _next = enumerator.MoveNext() ? enumerator.Current : null;
+	private T? _current;
 
-	public T Current { get; private set; }
-
-	object IEnumerator.Current => Current;
-
-	public PeekableEnumerator(E enumerator)
+	public T Current
 	{
-		_enumerator = enumerator;
-		enumerator.MoveNext();
-		Current = enumerator.Current;
-		_next = enumerator.MoveNext() ? enumerator.Current : default;
+		get
+		{
+			return _current
+				?? throw new InvalidOperationException(
+					"Enumeration has not started. Call MoveNext."
+				);
+		}
+		private set => _current = value;
 	}
 
-	public void Dispose()
-	{
-		_enumerator.Dispose();
-	}
+	object IEnumerator.Current => Current!;
+
+	public void Dispose() => enumerator.Dispose();
 
 	public bool MoveNext()
 	{
-		bool moved = false;
-
-		if (_next is not null)
+		var moved = _next.HasValue;
+		if (_next.HasValue)
 		{
-			Current = _next;
-			moved = true;
+			_current = _next.Value;
 		}
 
-		_next = _enumerator.MoveNext() ? _enumerator.Current : default;
+		_next = enumerator.MoveNext() ? enumerator.Current : null;
 
 		return moved;
 	}
 
 	public void Reset()
 	{
-		_enumerator.Reset();
-		Current = _enumerator.Current;
-		_next = _enumerator.MoveNext() ? _enumerator.Current : default;
+		enumerator.Reset();
+		_next = enumerator.MoveNext() ? enumerator.Current : null;
 	}
 
 	public T? Peek()
