@@ -17,26 +17,26 @@ public sealed class TokenizationException : Exception
 		: base(message, inner) { }
 }
 
-public sealed class Tokenizer
+public static class Tokenizer
 {
-	private readonly PeekableEnumerator<char> _enumerator;
-	private ulong _index = 0;
-
-	public static List<TokenIndex> Tokenize(IEnumerable<char> enumerable)
+	public static List<TokenIndex> Tokenize<T>(T enumerator)
+		where T : IEnumerator<char>
 	{
-		var tokenizer = new Tokenizer(enumerable);
+		Tokenizer<T> tokenizer = new(enumerator);
 		return tokenizer.Tokenize();
 	}
 
-	public Tokenizer(IEnumerable<char> enumerable)
+	public static List<TokenIndex> Tokenize(string input)
 	{
-		_enumerator = new PeekableEnumerator<char>(enumerable.GetEnumerator());
+		return Tokenize(input.GetEnumerator());
 	}
+}
 
-	public Tokenizer(IEnumerator<char> enumerator)
-	{
-		_enumerator = new PeekableEnumerator<char>(enumerator);
-	}
+public sealed class Tokenizer<T>(T enumerator)
+	where T : IEnumerator<char>
+{
+	private readonly PeekableEnumerator<T, char> _enumerator = new(enumerator);
+	private ulong _index = 0;
 
 	private bool MoveNext()
 	{

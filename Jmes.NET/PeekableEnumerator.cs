@@ -2,19 +2,21 @@ using System.Collections;
 
 namespace Jmes.NET;
 
-internal sealed class PeekableEnumerator<T> : IEnumerator<T>
+internal sealed class PeekableEnumerator<E, T> : IEnumerator<T>
+	where E : IEnumerator<T>
 	where T : notnull
 {
-	private readonly IEnumerator<T> _enumerator;
+	private readonly E _enumerator;
 	private T? _next;
 
 	public T Current { get; private set; }
 
 	object IEnumerator.Current => Current;
 
-	public PeekableEnumerator(IEnumerator<T> enumerator)
+	public PeekableEnumerator(E enumerator)
 	{
 		_enumerator = enumerator;
+		enumerator.MoveNext();
 		Current = enumerator.Current;
 		_next = enumerator.MoveNext() ? enumerator.Current : default;
 	}
