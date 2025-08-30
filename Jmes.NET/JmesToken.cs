@@ -51,7 +51,7 @@ public readonly record struct JmesToken(JmesTokenType Type, object? Value = null
 
 	public static JmesToken Identifier(string value) => new(JmesTokenType.Identifier, value);
 
-	public static JmesToken NumberToken(int value) => new(JmesTokenType.Number, value);
+	public static JmesToken Number(int value) => new(JmesTokenType.Number, value);
 
-	public static JmesToken LiteralToken(object? value) => new(JmesTokenType.Literal, value);
+	public static JmesToken Literal(object? value) => new(JmesTokenType.Literal, value);
 }

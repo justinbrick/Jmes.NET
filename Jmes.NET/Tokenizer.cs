@@ -264,7 +264,7 @@ public sealed class Tokenizer<T>(T enumerator)
 		try
 		{
 			var json = JsonNode.Parse(consumed);
-			return JmesToken.LiteralToken(json);
+			return JmesToken.Literal(json);
 		}
 		catch (JsonException e)
 		{
@@ -315,7 +315,7 @@ public sealed class Tokenizer<T>(T enumerator)
 		try
 		{
 			var value = int.Parse(consumed);
-			return JmesToken.NumberToken(negative ? -value : value);
+			return JmesToken.Number(negative ? -value : value);
 		}
 		catch (FormatException ex)
 		{
