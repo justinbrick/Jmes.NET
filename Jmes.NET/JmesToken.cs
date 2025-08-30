@@ -1,3 +1,7 @@
+using System.Reflection.Metadata;
+using System.Security.Cryptography;
+using System.Security.Principal;
+
 namespace Jmes.NET;
 
 /// <summary>
@@ -42,7 +46,28 @@ public enum JmesTokenType
 /// </summary>
 public readonly record struct JmesToken(JmesTokenType Type, object? Value = null)
 {
-	public int LeftBindingPower => 0;
+	public int LeftBindingPower =>
+		Type switch
+		{
+			JmesTokenType.Pipe => 1,
+			JmesTokenType.Or => 2,
+			JmesTokenType.And => 3,
+			JmesTokenType.Eq => 4,
+			JmesTokenType.Gt => 4,
+			JmesTokenType.Lt => 4,
+			JmesTokenType.Gte => 4,
+			JmesTokenType.Lte => 4,
+			JmesTokenType.Neq => 4,
+			JmesTokenType.Flatten => 5,
+			JmesTokenType.Star => 6,
+			JmesTokenType.Filter => 7,
+			JmesTokenType.Dot => 8,
+			JmesTokenType.Not => 9,
+			JmesTokenType.LBrace => 10,
+			JmesTokenType.LBracket => 11,
+			JmesTokenType.LParen => 12,
+			_ => 0,
+		};
 
 	public static JmesToken Make(JmesTokenType type) => new(type);
 
