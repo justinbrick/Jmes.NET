@@ -43,8 +43,6 @@ public enum JmesTokenType
 public readonly record struct JmesToken(JmesTokenType Type, object? Value = null)
 {
 	public int LeftBindingPower => 0;
-	public readonly object? Value = Value;
-	public readonly JmesTokenType TokenType = Type;
 
 	public static JmesToken Make(JmesTokenType type) => new(type);
 
