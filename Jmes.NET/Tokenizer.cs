@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -8,14 +9,14 @@ namespace Jmes.NET;
 
 public static class Tokenizer
 {
-	public static List<TokenIndex> Tokenize<T>(T enumerator)
+	public static Queue<TokenIndex> Tokenize<T>(T enumerator)
 		where T : IEnumerator<char>
 	{
 		Tokenizer<T> tokenizer = new(enumerator);
 		return tokenizer.Tokenize();
 	}
 
-	public static List<TokenIndex> Tokenize(string input)
+	public static Queue<TokenIndex> Tokenize(string input)
 	{
 		return Tokenize(input.GetEnumerator());
 	}
@@ -33,89 +34,89 @@ public sealed class Tokenizer<T>(T enumerator)
 		return _enumerator.MoveNext();
 	}
 
-	public List<TokenIndex> Tokenize()
+	public Queue<TokenIndex> Tokenize()
 	{
-		var tokens = new List<TokenIndex>();
+		var tokens = new Queue<TokenIndex>();
 
 		while (MoveNext())
 		{
 			switch (_enumerator.Current)
 			{
 				case char c when char.IsAsciiLetter(c) || c == '_':
-					tokens.Add((_index, ConsumeIdentifier()));
+					tokens.Enqueue((_index, ConsumeIdentifier()));
 					break;
 				case char c when char.IsAsciiDigit(c):
-					tokens.Add((_index, ConsumeNumber()));
+					tokens.Enqueue((_index, ConsumeNumber()));
 					break;
 				case char c when char.IsWhiteSpace(c):
 					// Ignore whitespace
 					break;
 				case '"':
-					tokens.Add((_index, ConsumeQuotedIdentifier()));
+					tokens.Enqueue((_index, ConsumeQuotedIdentifier()));
 					break;
 				case '`':
-					tokens.Add((_index, ConsumeLiteral()));
+					tokens.Enqueue((_index, ConsumeLiteral()));
 					break;
 				case '-':
-					tokens.Add((_index, ConsumeNumber(true)));
+					tokens.Enqueue((_index, ConsumeNumber(true)));
 					break;
 				case '[':
-					tokens.Add((_index, ConsumeBracket()));
+					tokens.Enqueue((_index, ConsumeBracket()));
 					break;
 				case '.':
-					tokens.Add((_index, JmesToken.Make(JmesTokenType.Dot)));
+					tokens.Enqueue((_index, JmesToken.Make(JmesTokenType.Dot)));
 					break;
 				case '*':
-					tokens.Add((_index, JmesToken.Make(JmesTokenType.Star)));
+					tokens.Enqueue((_index, JmesToken.Make(JmesTokenType.Star)));
 					break;
 				case '@':
-					tokens.Add((_index, JmesToken.Make(JmesTokenType.At)));
+					tokens.Enqueue((_index, JmesToken.Make(JmesTokenType.At)));
 					break;
 				case '&':
-					tokens.Add(
+					tokens.Enqueue(
 						(_index, ConsumeMatchedOr(JmesTokenType.And, JmesTokenType.Ampersand, '&'))
 					);
 					break;
 				case '>':
-					tokens.Add(
+					tokens.Enqueue(
 						(_index, ConsumeMatchedOr(JmesTokenType.Gte, JmesTokenType.Gt, '='))
 					);
 					break;
 				case '<':
-					tokens.Add(
+					tokens.Enqueue(
 						(_index, ConsumeMatchedOr(JmesTokenType.Lte, JmesTokenType.Lt, '='))
 					);
 					break;
 				case '!':
-					tokens.Add(
+					tokens.Enqueue(
 						(_index, ConsumeMatchedOr(JmesTokenType.Neq, JmesTokenType.Not, '='))
 					);
 					break;
 				case '|':
-					tokens.Add(
+					tokens.Enqueue(
 						(_index, ConsumeMatchedOr(JmesTokenType.Or, JmesTokenType.Pipe, '|'))
 					);
 					break;
 				case '(':
-					tokens.Add((_index, JmesToken.Make(JmesTokenType.LParen)));
+					tokens.Enqueue((_index, JmesToken.Make(JmesTokenType.LParen)));
 					break;
 				case ')':
-					tokens.Add((_index, JmesToken.Make(JmesTokenType.RParen)));
+					tokens.Enqueue((_index, JmesToken.Make(JmesTokenType.RParen)));
 					break;
 				case ',':
-					tokens.Add((_index, JmesToken.Make(JmesTokenType.Comma)));
+					tokens.Enqueue((_index, JmesToken.Make(JmesTokenType.Comma)));
 					break;
 				case ':':
-					tokens.Add((_index, JmesToken.Make(JmesTokenType.Colon)));
+					tokens.Enqueue((_index, JmesToken.Make(JmesTokenType.Colon)));
 					break;
 				case ']':
-					tokens.Add((_index, JmesToken.Make(JmesTokenType.RBracket)));
+					tokens.Enqueue((_index, JmesToken.Make(JmesTokenType.RBracket)));
 					break;
 				case '{':
-					tokens.Add((_index, JmesToken.Make(JmesTokenType.LBrace)));
+					tokens.Enqueue((_index, JmesToken.Make(JmesTokenType.LBrace)));
 					break;
 				case '}':
-					tokens.Add((_index, JmesToken.Make(JmesTokenType.RBrace)));
+					tokens.Enqueue((_index, JmesToken.Make(JmesTokenType.RBrace)));
 					break;
 				case '=':
 					if (!MoveNext())
@@ -127,7 +128,7 @@ public sealed class Tokenizer<T>(T enumerator)
 					switch (_enumerator.Current)
 					{
 						case '=':
-							tokens.Add((_index - 1, JmesToken.Make(JmesTokenType.Eq)));
+							tokens.Enqueue((_index - 1, JmesToken.Make(JmesTokenType.Eq)));
 							break;
 						default:
 							throw new TokenizationException(
@@ -142,7 +143,7 @@ public sealed class Tokenizer<T>(T enumerator)
 			}
 		}
 
-		tokens.Add((_index, JmesToken.Make(JmesTokenType.Eof)));
+		tokens.Enqueue((_index, JmesToken.Make(JmesTokenType.Eof)));
 
 		return tokens;
 	}
