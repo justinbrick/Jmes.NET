@@ -69,7 +69,17 @@ public sealed class Parser(Queue<(long, JmesToken)> queue)
 				}
 				return new AstField { Offset = position, FieldName = (string)token.Value! };
 			case JmesTokenType.Star:
-
+				return ParseWildcardProjection(new AstIdentity { Offset = position });
+			case JmesTokenType.Literal:
+				return new AstLiteral { Offset = position, Value = token.Value };
+			case JmesTokenType.LBracket:
+			case JmesTokenType.Flatten:
+			case JmesTokenType.LBrace:
+			case JmesTokenType.Ampersand:
+			case JmesTokenType.Not:
+			case JmesTokenType.Filter:
+			case JmesTokenType.LParen:
+				throw new NotImplementedException();
 			default:
 				throw new ParsingException($"Unexpected token {token.Type} at position {position}");
 		}
