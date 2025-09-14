@@ -46,8 +46,8 @@ public enum JmesTokenType
 /// </summary>
 public readonly record struct JmesToken(JmesTokenType Type, object? Value = null)
 {
-	public int LeftBindingPower =>
-		Type switch
+	public static int GetLeftBindingPower(JmesTokenType type) =>
+		type switch
 		{
 			JmesTokenType.Pipe => 1,
 			JmesTokenType.Or => 2,
@@ -68,6 +68,8 @@ public readonly record struct JmesToken(JmesTokenType Type, object? Value = null
 			JmesTokenType.LParen => 12,
 			_ => 0,
 		};
+
+	public int LeftBindingPower => GetLeftBindingPower(Type);
 
 	public static JmesToken Make(JmesTokenType type) => new(type);
 

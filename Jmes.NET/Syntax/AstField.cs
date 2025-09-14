@@ -5,6 +5,5 @@ namespace Jmes.NET.Syntax;
 /// </summary>
 public sealed class AstField : AstNode
 {
-	public required AstNode Target { get; init; }
 	public required string FieldName { get; init; }
 }

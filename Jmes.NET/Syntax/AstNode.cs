@@ -2,5 +2,5 @@ namespace Jmes.NET.Syntax;
 
 public abstract class AstNode
 {
-	public int Offset { get; init; }
+	public long Offset { get; init; }
 }

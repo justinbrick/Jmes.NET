@@ -54,14 +54,62 @@ public sealed class Parser(Queue<(long, JmesToken)> queue)
 	private AstNode NullDenotation()
 	{
 		var (position, token) = MoveNextWithPosition();
-		return token.Type switch
+		switch (token.Type)
 		{
-			_ => throw new ParsingException($"Unexpected token {token} at position {position}"),
-		};
+			case JmesTokenType.At:
+				return new AstIdentity { Offset = position };
+			case JmesTokenType.Identifier:
+				return new AstField { Offset = position, FieldName = (string)token.Value! };
+			case JmesTokenType.QuotedIdentifier:
+				if (Peek().Type == JmesTokenType.LParen)
+				{
+					throw new ParsingException(
+						$"Quoted strings cannot be used as function identifiers, position {position}"
+					);
+				}
+				return new AstField { Offset = position, FieldName = (string)token.Value! };
+			case JmesTokenType.Star:
+
+			default:
+				throw new ParsingException($"Unexpected token {token.Type} at position {position}");
+		}
 	}
 
 	private AstNode LeftDenotation(AstNode left)
 	{
 		throw new NotImplementedException();
+	}
+
+	private AstNode ParseProjection(int lbp)
+	{
+		switch (Peek().Type)
+		{
+			case JmesTokenType.Dot:
+				MoveNext();
+				throw new NotImplementedException("Dot projection not implemented");
+			case JmesTokenType.LBracket:
+			case JmesTokenType.Filter:
+				return Evaluate(lbp);
+			case JmesTokenType type when JmesToken.GetLeftBindingPower(type) < ProjectionStop:
+				return new AstIdentity { Offset = _index };
+			default:
+				throw new ParsingException($"Expected '.', '[', or '[?', found {Peek().Type}");
+		}
+	}
+
+	/// <summary>
+	/// When given a wildcard (*), parses a projection expression.
+	/// </summary>
+	/// <param name="lhs">the left-hand side expression</param>
+	/// <returns>a projection expression</returns>
+	private AstProjection ParseWildcardProjection(AstNode lhs)
+	{
+		var rhs = ParseProjection(JmesToken.GetLeftBindingPower(JmesTokenType.Star));
+		return new AstProjection
+		{
+			Offset = _index,
+			Left = new AstObjectValues { Offset = _index, Node = lhs },
+			Right = rhs,
+		};
 	}
 }
