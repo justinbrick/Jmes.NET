@@ -1,4 +1,4 @@
-namespace Jmes.NET.Syntax;
+namespace Jmes.NET.Parsing.Syntax;
 
 /// <summary>
 /// Represents a logical "or" operation between two expressions.

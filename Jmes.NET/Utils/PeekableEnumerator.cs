@@ -1,6 +1,6 @@
 using System.Collections;
 
-namespace Jmes.NET;
+namespace Jmes.NET.Utils;
 
 /// <summary>
 /// An enumerator implementation that allows peeking at the next element without advancing the enumeration.

@@ -1,4 +1,4 @@
-namespace Jmes.NET.Syntax;
+namespace Jmes.NET.Parsing.Syntax;
 
 /// <summary>
 /// Represents a field in a map, inside the abstract syntax tree.

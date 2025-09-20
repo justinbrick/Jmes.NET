@@ -1,4 +1,6 @@
-namespace Jmes.NET.Syntax;
+using Jmes.NET.Tokenization;
+
+namespace Jmes.NET.Parsing.Syntax;
 
 /// <summary>
 /// Represents a comparison expression in the abstract syntax tree.
@@ -26,10 +28,7 @@ public sealed class AstComparison : AstNode
 	/// <param name="token">the token to get the operator for</param>
 	/// <returns>the comparison operator that corresponds to the token</returns>
 	/// <exception cref="ArgumentOutOfRangeException">the <paramref name="token"/> is not a valid comparison operator token</exception>
-	public static AstComparisonOperator FromToken(JmesToken token)
-	{
-		return FromTokenType(token.Type);
-	}
+	public static AstComparisonOperator FromToken(JmesToken token) => FromTokenType(token.Type);
 
 	public static AstComparisonOperator FromTokenType(JmesTokenType type)
 	{

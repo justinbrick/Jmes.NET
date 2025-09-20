@@ -1,10 +1,4 @@
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using TokenIndex = (long, Jmes.NET.JmesToken);
-
-namespace Jmes.NET;
+namespace Jmes.NET.Parsing;
 
 public sealed class ParsingException : Exception
 {

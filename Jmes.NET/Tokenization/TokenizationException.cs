@@ -1,10 +1,6 @@
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using TokenIndex = (long, Jmes.NET.JmesToken);
+using TokenIndex = (long, Jmes.NET.Tokenization.JmesToken);
 
-namespace Jmes.NET;
+namespace Jmes.NET.Tokenization;
 
 public sealed class TokenizationException : Exception
 {

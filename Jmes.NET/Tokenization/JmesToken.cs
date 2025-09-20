@@ -1,8 +1,4 @@
-using System.Reflection.Metadata;
-using System.Security.Cryptography;
-using System.Security.Principal;
-
-namespace Jmes.NET;
+namespace Jmes.NET.Tokenization;
 
 /// <summary>
 /// Token types used by the tokenizer and parser.

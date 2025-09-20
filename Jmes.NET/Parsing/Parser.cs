@@ -1,6 +1,7 @@
-using Jmes.NET.Syntax;
+using Jmes.NET.Parsing.Syntax;
+using Jmes.NET.Tokenization;
 
-namespace Jmes.NET;
+namespace Jmes.NET.Parsing;
 
 /// <summary>
 ///	 A parser for JMESPath tokens.

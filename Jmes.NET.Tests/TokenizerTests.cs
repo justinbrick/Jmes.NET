@@ -1,4 +1,6 @@
-﻿namespace Jmes.NET.Tests;
+﻿using Jmes.NET.Tokenization;
+
+namespace Jmes.NET.Tests;
 
 public class TokenizerTests
 {

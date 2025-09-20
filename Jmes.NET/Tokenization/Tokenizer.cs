@@ -1,11 +1,13 @@
-﻿using System.Collections.Generic;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using TokenIndex = (long, Jmes.NET.JmesToken);
 
-namespace Jmes.NET;
+using Jmes.NET.Utils;
+
+using TokenIndex = (long, Jmes.NET.Tokenization.JmesToken);
+
+namespace Jmes.NET.Tokenization;
 
 public static class Tokenizer
 {
