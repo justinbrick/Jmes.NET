@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using Jmes.NET.Syntax;
 
 namespace Jmes.NET;
@@ -242,7 +241,7 @@ public sealed class Parser(Queue<(long, JmesToken)> queue)
 		{
 			case JmesTokenType.Dot:
 				MoveNext();
-				throw new NotImplementedException("Dot projection not implemented");
+				return ParseDot(lbp);
 			case JmesTokenType.LBracket:
 			case JmesTokenType.Filter:
 				return Evaluate(lbp);
@@ -255,7 +254,63 @@ public sealed class Parser(Queue<(long, JmesToken)> queue)
 
 	private AstNode ParseIndex()
 	{
-		throw new NotImplementedException();
+		int?[] indices = [null, null, null];
+		var idx = 0;
+		var notDone = true;
+		while (notDone)
+		{
+			var next = MoveNext();
+			switch (next.Type)
+			{
+				case JmesTokenType.Number:
+					indices[idx] = (int)next.Value!;
+					break;
+				case JmesTokenType.RBracket:
+					notDone = false;
+					break;
+				case JmesTokenType.Colon:
+					if (idx >= 2)
+					{
+						throw new ParsingException(
+							$"Too many colons in index/slice at position {_index}"
+						);
+					}
+					idx++;
+					break;
+				default:
+					throw new ParsingException(
+						$"Unexpected token {next.Type} in index/slice at position {_index}. Expected number, colon, or ']'"
+					);
+			}
+		}
+
+		// Simple indexing
+		if (idx == 0)
+		{
+#if DEBUG
+			// Given how we parse, this should never happen.
+			// If it does, it's a bug in the parser.
+			if (!indices[0].HasValue)
+			{
+				throw new InvalidOperationException("Expected index to have a value");
+			}
+#endif
+			return new AstIndex { Offset = _index, Index = indices[0]!.Value };
+		}
+
+		// Slicing
+		return new AstProjection
+		{
+			Offset = _index,
+			Left = new AstSlice
+			{
+				Offset = _index,
+				Start = indices[0],
+				End = indices[1],
+				Step = indices[2] ?? 1,
+			},
+			Right = ParseProjection(JmesToken.GetLeftBindingPower(JmesTokenType.Star)),
+		};
 	}
 
 	/// <summary>
@@ -337,27 +392,71 @@ public sealed class Parser(Queue<(long, JmesToken)> queue)
 			}
 		}
 
-		throw new NotImplementedException();
+		return new AstHashMap { Offset = _index, Entries = values };
 	}
 
 	private AstProjection ParseFilter(AstNode lhs)
 	{
-		throw new NotImplementedException();
+		var conditionLhs = Evaluate(0);
+		return Peek().Type != JmesTokenType.RBracket
+			? throw new ParsingException(
+				$"Expected ']' after filter expression, found {Peek().Type} at position {_index}"
+			)
+			: new AstProjection
+			{
+				Offset = _index,
+				Left = lhs,
+				Right = new AstCondition
+				{
+					Offset = _index,
+					Predicate = conditionLhs,
+					Then = ParseProjection(JmesToken.GetLeftBindingPower(JmesTokenType.Filter)),
+				},
+			};
 	}
 
-	private AstFlatten ParseFlatten(AstNode lhs)
+	private AstProjection ParseFlatten(AstNode lhs)
 	{
-		throw new NotImplementedException();
+		var right = ParseProjection(JmesToken.GetLeftBindingPower(JmesTokenType.Flatten));
+		return new AstProjection
+		{
+			Offset = _index,
+			Left = new AstFlatten { Offset = _index, Node = lhs },
+			Right = right,
+		};
 	}
 
-	private AstComparison ParseComparison(AstComparisonOperator operand, AstNode lhs)
+	private AstComparison ParseComparison(AstComparisonOperator op, AstNode lhs)
 	{
-		throw new NotImplementedException();
+		// all comparison operators have the same binding power
+		var right = Evaluate(JmesToken.GetLeftBindingPower(JmesTokenType.Eq));
+		return new AstComparison
+		{
+			Offset = _index,
+			Left = lhs,
+			Operator = op,
+			Right = right,
+		};
 	}
 
 	private AstNode ParseDot(int lbp)
 	{
-		throw new NotImplementedException();
+		switch (Peek().Type)
+		{
+			case JmesTokenType.LBracket:
+				MoveNext();
+				return ParseMultiSelectList();
+			case JmesTokenType.Identifier:
+			case JmesTokenType.QuotedIdentifier:
+			case JmesTokenType.Star:
+			case JmesTokenType.LBrace:
+			case JmesTokenType.Ampersand:
+				return Evaluate(lbp);
+			default:
+				throw new ParsingException(
+					$"Expected identifier, quoted identifier, '*', '{{', or '&' after '.', found {Peek().Type} at position {_index}"
+				);
+		}
 	}
 
 	/// <summary>
